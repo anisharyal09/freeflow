@@ -142,35 +142,35 @@ final class RecordingOverlayManager {
         }
     }
 
-    func showRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false) {
+    func showRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false, startedAt: ContinuousClock.Instant = .now) {
         DispatchQueue.main.async {
             self.lockedOverlayWidth = nil
             self.overlayState.recordingTriggerMode = mode
             self.overlayState.isCommandMode = isCommandMode
-            self.beginRecordingTimer()
+            self.beginRecordingTimer(startedAt: startedAt)
             self.overlayState.phase = .recording
             self.overlayState.audioLevel = 0
             self.showOverlayPanel(animatedResize: true)
         }
     }
 
-    func transitionToRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false) {
+    func transitionToRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false, startedAt: ContinuousClock.Instant = .now) {
         DispatchQueue.main.async {
             self.lockedOverlayWidth = nil
             self.overlayState.recordingTriggerMode = mode
             self.overlayState.isCommandMode = isCommandMode
-            self.beginRecordingTimer()
+            self.beginRecordingTimer(startedAt: startedAt)
             self.overlayState.phase = .recording
             self.updateOverlayLayout(animated: true)
         }
     }
 
-    private func beginRecordingTimer() {
+    private func beginRecordingTimer(startedAt: ContinuousClock.Instant) {
         // Snapshot the preference for this session so the content and panel
         // dimensions stay in sync if settings change while recording.
         overlayState.showsRecordingTimer =
             (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
-        overlayState.recordingStartedAt = ContinuousClock.now
+        overlayState.recordingStartedAt = startedAt
     }
 
     func setRecordingTriggerMode(_ mode: RecordingTriggerMode, animated: Bool) {

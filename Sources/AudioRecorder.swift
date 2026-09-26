@@ -93,7 +93,7 @@ final class AudioRecorder: NSObject, ObservableObject, AVCaptureAudioDataOutputS
     @Published var audioLevel: Float = 0.0
     private let liveLevelNormalizerLock = OSAllocatedUnfairLock(initialState: LiveAudioLevelNormalizer())
 
-    var onRecordingReady: (() -> Void)?
+    var onRecordingReady: ((ContinuousClock.Instant) -> Void)?
     var onRecordingFailure: ((Error) -> Void)?
     /// Fires on the sample-buffer queue with a 24 kHz mono PCM16 chunk for
     /// each incoming audio buffer (matching OpenAI Realtime's default PCM
@@ -119,7 +119,7 @@ final class AudioRecorder: NSObject, ObservableObject, AVCaptureAudioDataOutputS
             interleaved: true
         )!
     }()
-    private var readyFired = false
+    private let captureTiming = OSAllocatedUnfairLock(initialState: RecordingCaptureTiming())
     private var failureReported = false
     private static let watchdogTimeout: TimeInterval = 2.0
     private static let sampleRateLogLimit = 40
@@ -640,7 +640,6 @@ final class AudioRecorder: NSObject, ObservableObject, AVCaptureAudioDataOutputS
         let t0 = CFAbsoluteTimeGetCurrent()
         recordingStartTime = t0
         _bufferCount.withLock { $0 = 0 }
-        readyFired = false
         failureReported = false
         liveLevelNormalizerLock.withLock { $0.reset() }
 
@@ -652,6 +651,7 @@ final class AudioRecorder: NSObject, ObservableObject, AVCaptureAudioDataOutputS
         do {
             try sessionQueue.sync {
                 try self.makeSession(deviceUID: deviceUID, outputURL: outputURL)
+                self.captureTiming.withLock { $0.start(at: .now) }
                 self._recording.withLock { $0 = true }
                 self.startBufferWatchdog()
             }
@@ -882,12 +882,11 @@ final class AudioRecorder: NSObject, ObservableObject, AVCaptureAudioDataOutputS
             os_log(.info, log: recordingLog, "buffer #%d at %.3fms, rms=%.6f", count, elapsed, rms)
         }
 
-        if !readyFired && rms > 0 {
-            readyFired = true
+        if let captureStartedAt = captureTiming.withLock({ $0.recordingStartIfReady(rms: rms) }) {
             let elapsed = (CFAbsoluteTimeGetCurrent() - recordingStartTime) * 1000
             os_log(.info, log: recordingLog, "FIRST non-silent buffer at %.3fms — recording ready", elapsed)
             DispatchQueue.main.async {
-                self.onRecordingReady?()
+                self.onRecordingReady?(captureStartedAt)
             }
         }
     }

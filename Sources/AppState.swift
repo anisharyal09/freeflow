@@ -2203,7 +2203,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
 
         // Transition to waveform when first real audio arrives (any non-zero RMS)
         let deviceUID = selectedMicrophoneID
-        audioRecorder.onRecordingReady = { [weak self] in
+        audioRecorder.onRecordingReady = { [weak self] captureStartedAt in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.cancelRecordingInitializationTimer()
@@ -2213,12 +2213,14 @@ final class AppState: ObservableObject, @unchecked Sendable {
                 if overlayShown {
                     self.overlayManager.transitionToRecording(
                         mode: self.activeRecordingTriggerMode ?? triggerMode,
-                        isCommandMode: self.currentSessionIntent.isCommandMode
+                        isCommandMode: self.currentSessionIntent.isCommandMode,
+                        startedAt: captureStartedAt
                     )
                 } else {
                     self.overlayManager.showRecording(
                         mode: self.activeRecordingTriggerMode ?? triggerMode,
-                        isCommandMode: self.currentSessionIntent.isCommandMode
+                        isCommandMode: self.currentSessionIntent.isCommandMode,
+                        startedAt: captureStartedAt
                     )
                 }
                 overlayShown = true
