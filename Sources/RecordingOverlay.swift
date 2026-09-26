@@ -142,34 +142,41 @@ final class RecordingOverlayManager {
         }
     }
 
-    func showRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false, startedAt: ContinuousClock.Instant = .now) {
+    func showRecording(
+        mode: RecordingTriggerMode = .hold,
+        isCommandMode: Bool = false,
+        startedAt: ContinuousClock.Instant = .now,
+        showsRecordingTimer: Bool
+    ) {
         DispatchQueue.main.async {
             self.lockedOverlayWidth = nil
             self.overlayState.recordingTriggerMode = mode
             self.overlayState.isCommandMode = isCommandMode
-            self.beginRecordingTimer(startedAt: startedAt)
+            self.beginRecordingTimer(startedAt: startedAt, showsRecordingTimer: showsRecordingTimer)
             self.overlayState.phase = .recording
             self.overlayState.audioLevel = 0
             self.showOverlayPanel(animatedResize: true)
         }
     }
 
-    func transitionToRecording(mode: RecordingTriggerMode = .hold, isCommandMode: Bool = false, startedAt: ContinuousClock.Instant = .now) {
+    func transitionToRecording(
+        mode: RecordingTriggerMode = .hold,
+        isCommandMode: Bool = false,
+        startedAt: ContinuousClock.Instant = .now,
+        showsRecordingTimer: Bool
+    ) {
         DispatchQueue.main.async {
             self.lockedOverlayWidth = nil
             self.overlayState.recordingTriggerMode = mode
             self.overlayState.isCommandMode = isCommandMode
-            self.beginRecordingTimer(startedAt: startedAt)
+            self.beginRecordingTimer(startedAt: startedAt, showsRecordingTimer: showsRecordingTimer)
             self.overlayState.phase = .recording
             self.updateOverlayLayout(animated: true)
         }
     }
 
-    private func beginRecordingTimer(startedAt: ContinuousClock.Instant) {
-        // Snapshot the preference for this session so the content and panel
-        // dimensions stay in sync if settings change while recording.
-        overlayState.showsRecordingTimer =
-            (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
+    private func beginRecordingTimer(startedAt: ContinuousClock.Instant, showsRecordingTimer: Bool) {
+        overlayState.showsRecordingTimer = showsRecordingTimer
         overlayState.recordingStartedAt = startedAt
     }
 
