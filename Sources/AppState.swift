@@ -2195,6 +2195,11 @@ final class AppState: ObservableObject, @unchecked Sendable {
         isRecording = true
         statusText = "Starting..."
         hasShownScreenshotPermissionAlert = false
+        // Keep this recording's display preference fixed, including during startup silence.
+        let showsRecordingTimer =
+            (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
+
+        let timingGeneration = audioRecorder.prepareRecordingTiming()
 
         // Show initializing dots only if engine takes longer than 0.2s to start
         var overlayShown = false
@@ -2217,28 +2222,30 @@ final class AppState: ObservableObject, @unchecked Sendable {
         // Transition to waveform when first real audio arrives (any non-zero RMS)
         let deviceUID = selectedMicrophoneID
         audioRecorder.onRecordingReady = { [weak self] captureStartedAt in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.cancelRecordingInitializationTimer()
-                os_log(.info, log: recordingLog, "first real audio — transitioning to waveform")
-                self.statusText = "Recording..."
-                self.clearPendingOverlayDismissToken()
-                if overlayShown {
-                    self.overlayManager.transitionToRecording(
-                        mode: self.activeRecordingTriggerMode ?? triggerMode,
-                        isCommandMode: self.currentSessionIntent.isCommandMode,
-                        startedAt: captureStartedAt
-                    )
-                } else {
-                    self.overlayManager.showRecording(
-                        mode: self.activeRecordingTriggerMode ?? triggerMode,
-                        isCommandMode: self.currentSessionIntent.isCommandMode,
-                        startedAt: captureStartedAt
-                    )
-                }
-                overlayShown = true
-                self.playAlertSound(named: "Tink")
+            // The recorder already delivers on main after validating the generation.
+            // Do not enqueue again: cancellation could invalidate it between main-queue blocks.
+            guard let self, self.isRecording, self.activeRecordingTriggerMode != nil else { return }
+            self.cancelRecordingInitializationTimer()
+            os_log(.info, log: recordingLog, "first real audio — transitioning to waveform")
+            self.statusText = "Recording..."
+            self.clearPendingOverlayDismissToken()
+            if overlayShown {
+                self.overlayManager.transitionToRecording(
+                    mode: self.activeRecordingTriggerMode ?? triggerMode,
+                    isCommandMode: self.currentSessionIntent.isCommandMode,
+                    startedAt: captureStartedAt,
+                    showsRecordingTimer: showsRecordingTimer
+                )
+            } else {
+                self.overlayManager.showRecording(
+                    mode: self.activeRecordingTriggerMode ?? triggerMode,
+                    isCommandMode: self.currentSessionIntent.isCommandMode,
+                    startedAt: captureStartedAt,
+                    showsRecordingTimer: showsRecordingTimer
+                )
             }
+            overlayShown = true
+            self.playAlertSound(named: "Tink")
         }
         audioRecorder.onRecordingFailure = { [weak self] error in
             DispatchQueue.main.async {
@@ -2255,7 +2262,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
             guard let self else { return }
             let t0 = CFAbsoluteTimeGetCurrent()
             do {
-                try self.audioRecorder.startRecording(deviceUID: deviceUID)
+                try self.audioRecorder.startRecording(deviceUID: deviceUID, timingGeneration: timingGeneration)
                 os_log(.info, log: recordingLog, "audioRecorder.startRecording() done: %.3fms", (CFAbsoluteTimeGetCurrent() - t0) * 1000)
                 DispatchQueue.main.async { [self] in
                     guard self.isRecording, self.activeRecordingTriggerMode != nil else { return }
@@ -3102,7 +3109,10 @@ final class AppState: ObservableObject, @unchecked Sendable {
     private func startDebugOverlay() {
         isDebugOverlayActive = true
         clearPendingOverlayDismissToken()
-        overlayManager.showRecording()
+        overlayManager.showRecording(
+            showsRecordingTimer:
+                (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
+        )
 
         // Simulate audio levels with a timer
         var phase: Double = 0.0
