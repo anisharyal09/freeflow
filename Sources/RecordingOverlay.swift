@@ -6,7 +6,7 @@ import AppKit
 final class RecordingOverlayState: ObservableObject {
     @Published var phase: OverlayPhase = .recording
     @Published var recordingStartedAt: ContinuousClock.Instant?
-    @Published var showsRecordingTimer = true
+    @Published var showsRecordingTimer = RecordingTimerPreference.defaultEnabled
     @Published var audioLevel: Float = 0.0
     @Published var recordingTriggerMode: RecordingTriggerMode = .hold
     @Published var isCommandMode = false

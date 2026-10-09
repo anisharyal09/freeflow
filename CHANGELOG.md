@@ -8,6 +8,12 @@ This project uses semantic versioning for public releases. Use `MAJOR.MINOR.PATC
 - `MINOR` changes add user-visible features and improvements.
 - `PATCH` changes fix bugs, polish existing behavior, or make small internal improvements.
 
+## [1.3.1] - 2026-10-09
+
+### Fixed
+
+- The recording timer is now off by default. You can enable it in Settings; existing saved choices are preserved.
+
 ## [1.3.0] - 2026-10-09
 
 ### Added

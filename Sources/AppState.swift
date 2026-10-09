@@ -2200,7 +2200,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
         hasShownScreenshotPermissionAlert = false
         // Keep this recording's display preference fixed, including during startup silence.
         let showsRecordingTimer =
-            (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
+            RecordingTimerPreference.load(from: .standard)
 
         let timingGeneration = audioRecorder.prepareRecordingTiming()
 
@@ -3114,7 +3114,7 @@ final class AppState: ObservableObject, @unchecked Sendable {
         clearPendingOverlayDismissToken()
         overlayManager.showRecording(
             showsRecordingTimer:
-                (UserDefaults.standard.object(forKey: "show_recording_timer") as? Bool) ?? true
+                RecordingTimerPreference.load(from: .standard)
         )
 
         // Simulate audio levels with a timer
