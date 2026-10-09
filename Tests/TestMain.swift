@@ -5,6 +5,7 @@ struct FreeFlowTests {
     static func main() {
         AppContextServiceTests.run()
         ModelConfigurationTests.run()
+        RecordingCaptureTimingTests.run()
         ShortcutCoreTests.run()
         SemanticVersionTests.run()
         LLMCooldownManagerTests.run()
