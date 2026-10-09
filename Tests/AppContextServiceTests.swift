@@ -10,6 +10,7 @@ enum AppContextServiceTests {
         testDeprecatedGroqModelsAreNotPredefined()
         testQwenCleanupDisablesReasoning()
         testInferenceFailureDiagnostics()
+        testContextRequestBudget()
         testFailedSummariesStayOutOfPostProcessing()
     }
 
@@ -123,6 +124,16 @@ enum AppContextServiceTests {
         TestSupport.expect(config.reasoningEffort == "none", "Qwen cleanup should disable reasoning")
         TestSupport.expect(config.includeReasoning == false, "Qwen cleanup should exclude reasoning output")
     }
+    private static func testContextRequestBudget() {
+        let options = AppContextService.inferenceRequestOptions(for: "qwen/qwen3.8-27b")
+        TestSupport.expectEqual(options["max_completion_tokens"] as? Int, 512)
+        TestSupport.expectEqual(options["reasoning_effort"] as? String, "none")
+        TestSupport.expectEqual(options["include_reasoning"] as? Bool, false)
+        let custom = AppContextService.inferenceRequestOptions(for: "synthetic/custom")
+        TestSupport.expectEqual(custom["max_completion_tokens"] as? Int, 512)
+        TestSupport.expect(custom["reasoning_effort"] == nil, "Unknown providers should not receive reasoning options")
+    }
+
     private static func testInferenceFailureDiagnostics() {
         let hostileResponse = Data(#"{"error":{"message":"synthetic-secret-token and captured content"}}"#.utf8)
         for status in [400, 401, 403, 404, 429, 500, 503] {

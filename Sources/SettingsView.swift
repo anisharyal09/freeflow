@@ -2345,7 +2345,7 @@ struct RunLogEntryView: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.orange)
                                                 .textSelection(.enabled)
-                                            Text("Post-processing continues without an activity summary.")
+                                            Text("No usable activity summary. Dictation can continue.")
                                                 .font(.caption2)
                                                 .foregroundStyle(.secondary)
                                         } else {

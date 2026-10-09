@@ -280,9 +280,7 @@ Selected text: \(selectedText ?? "None")
                 ]
             ]
 
-            let modelConfig = ModelConfiguration.config(for: model)
-            if let effort = modelConfig.reasoningEffort { payload["reasoning_effort"] = effort }
-            if let include = modelConfig.includeReasoning { payload["include_reasoning"] = include }
+            payload.merge(Self.inferenceRequestOptions(for: model)) { _, option in option }
 
             request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
             let (data, response) = try await LLMAPITransport.data(for: request)
@@ -294,6 +292,16 @@ Selected text: \(selectedText ?? "None")
             if (error as? URLError)?.code == .timedOut { return .failure(.timeout) }
             return .failure(.network)
         }
+    }
+
+    static func inferenceRequestOptions(for model: String) -> [String: Any] {
+        // Two sentences need a small completion budget. Leaving this unset
+        // can reserve more output tokens than Groq's free-tier TPM limit.
+        var options: [String: Any] = ["max_completion_tokens": 512]
+        let config = ModelConfiguration.config(for: model)
+        if let effort = config.reasoningEffort { options["reasoning_effort"] = effort }
+        if let include = config.includeReasoning { options["include_reasoning"] = include }
+        return options
     }
 
     static func inferenceResult(
