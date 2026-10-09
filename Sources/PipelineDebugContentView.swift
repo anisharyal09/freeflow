@@ -33,7 +33,20 @@ struct PipelineDebugContentView: View {
             }
 
             if !contextSummary.isEmpty {
-                debugRow(title: "Context", value: contextSummary)
+                if ContextInferenceFailure.isFailureSummary(contextSummary) {
+                    Label("Context summary failed", systemImage: "exclamationmark.triangle.fill")
+                        .font(.body.bold())
+                        .foregroundStyle(.orange)
+                    Text(contextSummary)
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                    Text("Post-processing continues without an activity summary.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    debugRow(title: "Context", value: contextSummary)
+                }
             }
 
             if !contextScreenshotStatus.isEmpty || contextScreenshotDataURL != nil {
